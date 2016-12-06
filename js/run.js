@@ -94,18 +94,18 @@ function blod(canvas,cobj,person){
     for(var i=0;i<30;i++){
         arr.push(new lizi(canvas,cobj,person));
     }
-        var t=setInterval(function(){
-            for(var i=0;i<arr.length;i++){
-                arr[i].darw();
-                arr[i].uplade();
-                if(arr[i].r<=0 || arr[i].lifts<=0){
-                    arr.splice(i,1);
-                }
+    var t=setInterval(function(){
+        for(var i=0;i<arr.length;i++){
+            arr[i].darw();
+            arr[i].uplade();
+            if(arr[i].r<=0 || arr[i].lifts<=0){
+                arr.splice(i,1);
             }
-            if(arr.length==0){
-                clearInterval(t)
-            }
-        },80)
+        }
+        if(arr.length==0){
+            clearInterval(t)
+        }
+    },80)
 }
 // 子弹
 function zidan(canvas,cobj,zidan){
@@ -158,7 +158,13 @@ function game(canvas,cobj,run,jump,hinderImg,pro,span,zidan,req,vido_run,vido_ju
     this.vido_zidan=vido_zidan;
     this.vido_eat=vido_eat;
     this.num1=0;
-    this.ts=[];
+    this.ts={};
+    this.flag=true;
+    this.inta=0;
+    this.speed=10;
+    this.r=110;
+    this.y=this.person.y;
+    this.stop=true;
 }
 game.prototype={
     play:function(star,zhao){
@@ -170,7 +176,134 @@ game.prototype={
         this.move()
 
     },
-    // move1:,
+    move1:function(){
+        var that=this;
+        // console.log(that)
+        that.num1+=50;
+        var time=2000+parseInt(3*Math.random())*1000;
+        that.person.num++;
+        if(that.person.status=="run"){
+            that.person.state=that.person.num%8;
+        }else{
+            that.person.state=0;
+        }
+        that.person.x+=that.person.peedx;
+        if(that.person.x>that.w/3){
+            that.person.x=that.w/3
+        }
+        that.person.draw();
+        // that.person.uplodata();
+        that.backx-=that.backspeed;
+        that.canvas.style.backgroundPositionX = that.backx + "px";
+        // 障碍物
+        if(that.num1%time==0){
+            that.num1=0;
+            time=2000+parseInt(3*Math.random())*1000;
+            var zhangaiobj=new hinder(that.canvas,that.cobj,that.zhang);
+            zhangaiobj.state=Math.floor(4*Math.random());
+
+            that.zhangarr.push(zhangaiobj);
+            if(that.zhangarr.length>100){
+                that.zhangarr.shift();
+            }
+        }
+
+        for(var i=0;i<that.zhangarr.length;i++){
+            that.zhangarr[i].draw();
+            that.zhangarr[i].x-=that.speed;
+
+            if(hitPix(that.canvas,that.cobj,that.zhangarr[i],that.person)) {
+                //子弹数量
+                if (that.zhangarr[i].state == 1) {
+                    that.vido_eat.play();
+                    that.zhangarr[i].flage = true;
+                    that.zhangarr[i].flage1 = true;
+                    if (!that.zhangarr[i].flage2) {
+                        that.dany++;
+                    }
+                    that.zhangarr[i].flage2 = true;
+                    document.querySelector(".dany").innerHTML = that.dany;
+                    that.zhangarr.splice(i, 1)
+                    that.vido_hit.pause();
+                }else {
+                    that.vido_eat.pause();
+                    that.vido_hit.play()
+                    // 生命值
+                    if (!that.zhangarr[i].flage) {
+                        that.lift--;
+                        that.zhangarr[i].flage = true;
+                        that.pro.style.width = that.lift * 20 + "px";
+
+                        blod(that.canvas,that.cobj,that.person);
+                    }
+                    // 生命值小于0的时候
+                    if (that.lift <= 0) {
+                        that.vido_run.pause();
+                        document.querySelector(".gave").style.display = "block";
+                        document.querySelector(".gave").style.animation = "gread 2s forwards";
+                        document.querySelector(".zhao").style.animation = "zhao 2s forwards";
+                        var messages=localStorage.messages?JSON.parse(localStorage.messages):[];
+                        var name=document.querySelector(".name").value;
+                        var map={name:name,gread:that.gread};
+
+                        if(messages.length>0){
+                            messages.sort(function(a,b){
+                                return a.gread<b.gread;
+                            })
+                            if(map.gread>messages[messages.length-1].gread){
+                                if(messages.length==5){
+                                    messages[messages.length-1]=map;
+                                }else if(messages.length<5){
+                                    messages.push(map);
+                                }
+                            }
+                        } else{
+                            messages.push(map);
+                        }
+                        localStorage.messages=JSON.stringify(messages);
+
+                        clearInterval(that.ts.t1);
+                        clearInterval(that.ts.t2);
+
+                        document.querySelector(".gave p").innerHTML=that.gread;
+                        var messages=localStorage.messages?JSON.parse(localStorage.messages):[];
+                        var str="";
+                        for(var k=0;k<messages.length;k++){
+                            var li=document.createComment("li");
+                            str+="<li>"+messages[k].name+":"+messages[k].gread;
+                        }
+                        document.querySelector(".gave ul").innerHTML=str;
+                        document.querySelector(".but").onclick = function () {
+                            location.reload();
+                        }
+                    }
+                }
+            }
+            // 子弹
+            if(that.isfir){
+                if(that.dany>0){
+                    that.zd.speedx+=1;
+                    that.zd.x+=that.zd.speedx;
+                    that.zd.draw();
+                }
+                if(hitPix(that.canvas,that.cobj,that.zhangarr[i],that.zd)){
+                    // console.log(that.zhangarr[i].width)
+                    that.zhangarr.splice(i,1)
+                }
+            }
+
+            // 分数值
+            // console.log(that.zhangarr[i].x+that.zhangarr[i].width)
+            if(that.person.x>that.zhangarr[i].x+that.zhangarr[i].width){
+                if(!that.zhangarr[i].flage && !that.zhangarr[i].flage1){
+                    that.gread++;
+                    that.span.innerHTML=that.gread;
+                }
+                that.zhangarr[i].flage1=true;
+            }
+        }
+
+    },
     // 跑
     runs:function(){
         var that=this;
@@ -178,181 +311,63 @@ game.prototype={
         that.vido_run.play();
         // var num=0;
 
-        var running=setInterval(function(){
-            // var that=this;
-            // console.log(that)
-            that.num1+=50;
-            var time=2000+parseInt(3*Math.random())*1000;
-            that.person.num++;
-            if(that.person.status=="run"){
-                that.person.state=that.person.num%8;
-            }else{
-                that.person.state=0;
-            }
-            that.person.x+=that.person.peedx;
-            if(that.person.x>that.w/3){
-                that.person.x=that.w/3
-            }
-            that.person.draw();
-            // that.person.uplodata();
-            that.backx-=that.backspeed;
-            that.canvas.style.backgroundPositionX = that.backx + "px";
-            // 障碍物
-            if(that.num1%time==0){
-                that.num1=0;
-                time=2000+parseInt(3*Math.random())*1000;
-                var zhangaiobj=new hinder(that.canvas,that.cobj,that.zhang);
-                zhangaiobj.state=Math.floor(4*Math.random());
-
-                that.zhangarr.push(zhangaiobj);
-                if(that.zhangarr.length>100){
-                    that.zhangarr.shift();
-                }
-            }
-
-            for(var i=0;i<that.zhangarr.length;i++){
-                that.zhangarr[i].draw();
-                that.zhangarr[i].x-=that.speed;
-
-                if(hitPix(that.canvas,that.cobj,that.zhangarr[i],that.person)) {
-                    //子弹数量
-                    if (that.zhangarr[i].state == 1) {
-                        that.vido_eat.play();
-                        that.zhangarr[i].flage = true;
-                        that.zhangarr[i].flage1 = true;
-                        if (!that.zhangarr[i].flage2) {
-                            that.dany++;
-                        }
-                        that.zhangarr[i].flage2 = true;
-                        document.querySelector(".dany").innerHTML = that.dany;
-                        that.zhangarr.splice(i, 1)
-
-                        that.vido_hit.pause();
-                    } else {
-                        that.vido_eat.pause();
-                        that.vido_hit.play()
-                        // 生命值
-                        if (!that.zhangarr[i].flage) {
-                            that.lift--;
-                            that.zhangarr[i].flage = true;
-                            that.pro.style.width = that.lift * 20 + "px";
-
-                            // var blod = new lizi(that.canvas, that.cobj);
-                            // blod.x = that.person.width / 2 + that.person.x;
-                            // blod.y = that.person.height / 2 + that.person.y;
-                            // blod.darw();
-                            // blod.uplade()
-                            blod(that.canvas,that.cobj,that.person);
-                        }
-                        if (that.lift <= 0) {
-                            that.vido_run.pause();
-                            document.querySelector(".gave").style.display = "block";
-                            document.querySelector(".gave").style.animation = "gread 2s forwards";
-                            document.querySelector(".zhao").style.animation = "zhao 2s forwards";
-                            clearInterval(running);
-
-
-                            var messages=localStorage.messages?JSON.parse(localStorage.messages):[];
-                            var name=document.querySelector(".name").value;
-                            var map={name:name,gread:that.gread};
-
-                            if(messages.length>0){
-                                messages.sort(function(a,b){
-                                    return a.gread<b.gread;
-                                })
-                                if(map.gread>messages[messages.length-1].gread){
-                                    if(messages.length==5){
-                                        messages[messages.length-1]=map;
-                                    }else if(messages.length<5){
-                                        messages.push(map);
-                                    }
-                                }
-                            } else{
-                                messages.push(map);
-                            }
-                            localStorage.messages=JSON.stringify(messages);
-
-// console.log(cun)
-                            // var chu=JSON.parse(cun);
-                            document.querySelector(".gave p").innerHTML=that.gread;
-
-                            for(var k=0;k<messages.length;k++){
-                                var li=document.createComment("li");
-                                li.innerHTML=messages[k].name+":"+messages[k].gread;
-                                document.querySelector(".gave ul").appendChild(li);
-                            }
-                            console.log(li)
-                            document.querySelector(".but").onclick = function () {
-
-                                // var gredd=localStorage.setItem("gread",that.gread);
-                                // document.title=gredd;
-
-                                location.reload();
-                            }
-                        }
-                    }
-                }
-                // 子弹
-                if(that.isfir){
-                    if(that.dany>0){
-                        that.zd.speedx+=1;
-                        that.zd.x+=that.zd.speedx;
-                        that.zd.draw();
-                    }
-                    if(hitPix(that.canvas,that.cobj,that.zhangarr[i],that.zd)){
-                        // console.log(that.zhangarr[i].width)
-                        that.zhangarr.splice(i,1)
-                    }
-                }
-
-                // 分数值
-                // console.log(that.zhangarr[i].x+that.zhangarr[i].width)
-                if(that.person.x>that.zhangarr[i].x+that.zhangarr[i].width){
-                    if(!that.zhangarr[i].flage && !that.zhangarr[i].flage1){
-                        that.gread++;
-                        that.span.innerHTML=that.gread;
-                    }
-                    that.zhangarr[i].flage1=true;
-                }
-            }
-
+        that.ts.t1=setInterval(function(){
+            that.move1();
         },50)
-        that.ts.push(running);
     },
     // 跳
     jumps:function(){
         var that=this;
-        var flag=true;
         document.onkeydown=function(e){
-            if(!flag){
-                return;
-            }
-            flag=false;
-            if(e.keyCode==32){
+            if(e.keyCode==13){
+                if(that.stop){
+                    clearInterval(that.ts.t1);
+                    clearInterval(that.ts.t2);
+                    that.stop=false;
+                }
+            }else if(e.keyCode==65){
+                if(!that.stop){
+                    that.ts.t1=setInterval(function(){
+                        that.move1();
+                    },50)
+                    if(!that.flag){
+                        clearInterval(that.ts.t2);
+                        that.ts.t2=setInterval(function(){
+                            that.move2();
+                        },50)
+                    }
+                    that.stop=true;
+                }
+            }else if(e.keyCode==32){
+                if(!that.flag){
+                    return;
+                }
+                that.flag=false;
                 that.vido_jump.play();
                 that.vido_run.pause();
                 that.person.status= "jump";
-                var inta=0;
-                var speed=10;
-                var r=110;
-                var y=that.person.y;
-
-                // that.person.state=0
-                var t=setInterval(function(){
-                    inta+=speed;
-                    if(inta>=180){
-                        that.person.y=y;
-                        clearInterval(t);
-                        flag=true;
-                        that.person.status="run";
-                        that.vido_run.play();
-                    }
-                    var top=Math.sin(inta*Math.PI/180)*r;
-                    that.person.y=y-top;
+                that.ts.t2=setInterval(function(){
+                    that.move2();
                 },50)
             }
         }
     },
+    move2:function(){
+        var that=this;
+        that.inta+=that.speed;
+
+        if(that.inta>=180){
+            that.person.y=that.y;
+            clearInterval(that.ts.t2);
+            that.flag=true;
+            that.person.status="run";
+            that.inta=0;
+            that.vido_run.play();
+        }
+        var top=Math.sin(that.inta*Math.PI/180)*that.r;
+        that.person.y=that.y-top;
+    },
+
     move:function(){
         var that=this;
         document.querySelector(".zhao").onclick=function(){
@@ -373,5 +388,37 @@ game.prototype={
             }
 
         }
-    }
+    },
+
+    // agin:function(){
+    //     var that=this;
+    //     document.querySelector(".gave").style.animation = "gread1 2s forwards";
+    //     document.querySelector(".zhao").style.animation = "zhao1 2s forwards";
+    //
+    //     that.person.x=0;
+    //     that.person.y=420;
+    //     that.lift=5;
+    //     that.gread=0;
+    //     that.zhangarr=[];
+    //     // that.inta=0;
+    //     // that.speed=10;
+    //     // that.r=110;
+    //     // that.y=that.person.y;
+    //     that.dany=10;
+    //     // that.run();
+    //     that.stop=false;
+    //     that.flag=false;
+    //     if(!that.stop){
+    //         that.ts.t1=setInterval(function(){
+    //             that.move1();
+    //         },50)
+    //         if(!that.flag){
+    //             clearInterval(that.ts.t2);
+    //             that.ts.t2=setInterval(function(){
+    //                 that.move2();
+    //             },50)
+    //         }
+    //         that.stop=true;
+    //     }
+    // }
 }
