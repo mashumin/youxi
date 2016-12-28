@@ -324,14 +324,17 @@ game.prototype={
                     clearInterval(that.ts.t1);
                     clearInterval(that.ts.t2);
                     that.stop=false;
+                    that.vido_run.pause();
                 }
             }else if(e.keyCode==65){
                 if(!that.stop){
                     that.ts.t1=setInterval(function(){
                         that.move1();
+                        that.vido_run.play()
                     },50)
                     if(!that.flag){
                         clearInterval(that.ts.t2);
+                        that.vido_run.pause();
                         that.ts.t2=setInterval(function(){
                             that.move2();
                         },50)
